@@ -7,20 +7,20 @@ import java.util.stream.Stream;
 
 public interface IView {
 
-
     /**
-     * Set the details pane entry
-     * TODO: this should ultimately trigger the setMedia function defined in DetailsPane
-     * @param mbean the MBean to set
+     * Set or update the record in the details pane
+     * <p>
+     * Provides the option for a partial refresh of the details pane that only updates the user fields
+     * to avoid flickering when the record is already displayed
+     *
+     * @param record the record to be displayed
+     * @param refreshUserFieldsOnly if true, only the user fields will be refreshed
      */
-    public void setDetailsPaneEntry(MBeans mbean);
 
-//    /**
-//     * Set the list pane entries
-//     * @param mbeans the MBeans to set
-//     */
-//    public void setSourceTableRecords(Stream<MBeans> mbeans);
+    public void setDetailsPaneEntry(MBeans record, boolean refreshUserFieldsOnly);
 
+
+    void clearListSelection();
 
     public void setSourceTableRecordsV2(Stream<MBeans> records, String[] watchlistNames, boolean[][] recordWatchlistMatrix);
 

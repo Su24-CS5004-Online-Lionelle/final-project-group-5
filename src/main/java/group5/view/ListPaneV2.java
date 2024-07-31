@@ -1,10 +1,8 @@
 package group5.view;
 
-import com.google.common.collect.Table;
 import group5.controller.IFeature;
 import group5.model.beans.MBeans;
-import group5.model.formatters.Formats;
-import group5.model.formatters.MBeansLoader;
+import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.swing.*;
@@ -19,11 +17,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -60,18 +56,20 @@ public class ListPaneV2 extends JPanel {
     MovieTableModel sourceTableModel;
 
     // List<String> watchlistNames;
+
     Consumer<MBeans> tableSelectionHandler;
     BiConsumer<MBeans, Integer> removeFromListHandler;
     BiConsumer<MBeans, Integer> addToListHandler;
     BiConsumer<MBeans, Boolean> changeWatchedStatusHandler;
+    TriConsumer<MBeans, Boolean, String> changeWatchedStatusHandlerV2;
     Consumer<String> createListHandler;
     Consumer<Integer> deleteListHandler;
     Consumer<Integer> tabChangeHandler;
     Consumer<String> importListHandler;
     Consumer<String> exportListHandler;
 
-    Boolean TMP_SORTING_ENABLED = true;
-
+    Boolean SORTING_ENABLED = true;
+    Boolean SELECTION_PERMENANCE = true;
     /**
      * List of movie models for user-defined lists
      * Each user-defined list will have its own model
@@ -96,6 +94,7 @@ public class ListPaneV2 extends JPanel {
         watchlistModels = new ArrayList<>();
         watchlistTables = new ArrayList<>();
         // watchlistNames = new ArrayList<>();
+
 
 
         // Create panel for add and export buttons below the table
@@ -165,7 +164,7 @@ public class ListPaneV2 extends JPanel {
         targetTable = new JTable(targetModel);
 
         // Enable sorting and disable sorting for the action column
-        if (TMP_SORTING_ENABLED) {
+        if (SORTING_ENABLED) {
             TableRowSorter<TableModel> sorter = new TableRowSorter<>(targetTable.getModel());
             targetTable.setRowSorter(sorter);
             sorter.setSortable(TableColumn.WATCHLIST.getIndex(), false);
@@ -235,18 +234,8 @@ public class ListPaneV2 extends JPanel {
     }
 
 
-    public void setUserTableRecords(Stream<MBeans> recordStream, int watchlistIndex) {
-        List<MBeans> records = recordStream.toList();
-        if (tabbedPane.getTabCount() - 2 < watchlistIndex) {
-            throw new IllegalArgumentException("User-defined list index out of bounds");
-        }
-        MovieTableModel targetUserListModel = watchlistModels.get(watchlistIndex);
-        List<MovieTableModelRecord> recordsWithMetadata = new ArrayList<>();
-        for (MBeans record : records) {
-            recordsWithMetadata.add(new MovieTableModelRecord(record));
-        }
-        targetUserListModel.setRecordsWithMetadata(recordsWithMetadata);
-    }
+
+
 
 
     private void localImportListHandler() {
@@ -281,12 +270,41 @@ public class ListPaneV2 extends JPanel {
 
     public void setSourceTableRecordsV2(Stream<MBeans> records, String[] watchlistNames, boolean[][] recordWatchlistMatrix) {
         System.out.println("[ListPaneV2] setMainTableRecords called");
-        List<MovieTableModelRecord> tableRecords = new ArrayList<>();
+        List<MovieTableModelRecord> tmRecords = new ArrayList<>();
         List<MBeans> mBeansList = records.toList();
         for (int i = 0; i < mBeansList.size(); i++) {
-            tableRecords.add(new MovieTableModelRecord(mBeansList.get(i), watchlistNames, recordWatchlistMatrix[i]));
+            tmRecords.add(new MovieTableModelRecord(mBeansList.get(i), watchlistNames, recordWatchlistMatrix[i]));
         }
-        sourceTableModel.setRecordsWithMetadata(tableRecords);
+        int selectedRow = sourceTable.getSelectedRow();
+        sourceTableModel.setMovieTableModelRecords(tmRecords);
+        if (SELECTION_PERMENANCE) {
+            if (selectedRow >= 0 && selectedRow < sourceTable.getRowCount() && tabbedPane.getSelectedIndex() == 0
+                && sourceTable.getRowCount() > 0) {
+                sourceTable.setRowSelectionInterval(selectedRow, selectedRow);
+            }
+        }
+    }
+
+
+    public void setUserTableRecords(Stream<MBeans> recordStream, int watchlistIndex) {
+        if (tabbedPane.getTabCount() - 2 < watchlistIndex) {
+            throw new IllegalArgumentException("User-defined list index out of bounds");
+        }
+        List<MBeans> mBeansList = recordStream.toList();
+        MovieTableModel targetUserListModel = watchlistModels.get(watchlistIndex);
+        List<MovieTableModelRecord> tmRecords = new ArrayList<>();
+        for (MBeans record : mBeansList) {
+            tmRecords.add(new MovieTableModelRecord(record));
+        }
+        int selectedRow = watchlistTables.get(watchlistIndex).getSelectedRow();
+        targetUserListModel.setMovieTableModelRecords(tmRecords);
+        if (SELECTION_PERMENANCE) {
+            if (selectedRow >= 0 && selectedRow < watchlistTables.get(watchlistIndex).getRowCount() &&
+                    watchlistTables.get(watchlistIndex).getRowCount() > 0
+                && tabbedPane.getSelectedIndex() == watchlistIndex + 1) {
+                watchlistTables.get(watchlistIndex).setRowSelectionInterval(selectedRow, selectedRow);
+            }
+        }
     }
 
     public void bindFeatures(IFeature features) {
@@ -298,7 +316,8 @@ public class ListPaneV2 extends JPanel {
         tableSelectionHandler = features::showRecordDetails;
         removeFromListHandler = features::removeFromWatchList;
         addToListHandler = features::addToWatchlist;
-        changeWatchedStatusHandler = features::changeWatchedStatus;
+        // changeWatchedStatusHandler = features::changeWatchedStatus;
+        changeWatchedStatusHandlerV2 = features::changeWatchedStatusV2;
         tabChangeHandler = features::handleTabChange;
         tabbedPane.addChangeListener(e -> localTabChangeHandler());
         createListHandler = features::createWatchlist;
@@ -308,20 +327,24 @@ public class ListPaneV2 extends JPanel {
 
 
     private void localTabChangeHandler() {
+        // currentTable = table of the newly selected tab
+        getCurrentTable().clearSelection();
         deleteListButton.setEnabled(!(tabbedPane.getSelectedIndex() == 0));
+        // tabChangeHandler would clear ViewFilter, ModelFilter, and refresh the records for the new tab
         tabChangeHandler.accept(tabbedPane.getSelectedIndex());
+    }
+
+    public JTable getCurrentTable() {
+        return (JTable) ((JScrollPane) tabbedPane.getSelectedComponent()).getViewport().getView();
     }
 
     private void localDeleteListHandler() {
         // Pop up a dialog to confirm deletion
         System.out.println("[ListPaneV2] Delete list button clicked");
         int currWatchlistIdx = tabbedPane.getSelectedIndex() - 1;
-        // String listName = watchlistNames.get(currWatchlistIdx);
-        int dialogResult = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete the list \"" + currWatchlistIdx + "\"?", "Warning", JOptionPane.YES_NO_OPTION);
-        deleteListHandler.accept(currWatchlistIdx);
-        // System.out.println("[ListPaneV2] Delete list dialog result: " + dialogResult);
+        int dialogResult = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete the watchlist \"" + currWatchlistIdx+ "\"?", "Warning", JOptionPane.YES_NO_OPTION);
+//        System.out.println("[ListPaneV2] Delete list dialog result: " + dialogResult);
     }
-
 
 
     class MovieTableModel extends AbstractTableModel {
@@ -354,7 +377,7 @@ public class ListPaneV2 extends JPanel {
             return tableMode;
         }
 
-        public void setRecordsWithMetadata(List<MovieTableModelRecord> movieTableModelRecords) {
+        public void setMovieTableModelRecords(List<MovieTableModelRecord> movieTableModelRecords) {
             this.movieTableModelRecords = movieTableModelRecords;
             fireTableDataChanged();
         }
@@ -442,7 +465,8 @@ public class ListPaneV2 extends JPanel {
                 MBeans record = this.getRecordAt(row);
                 System.out.println("[ListPaneV2] Setting watched status of " + record.getTitle() + " to " + !record.getWatched());
                 // calling the handler to update the Model
-                changeWatchedStatusHandler.accept(record, !record.getWatched());
+                // changeWatchedStatusHandler.accept(record, !record.getWatched());
+                changeWatchedStatusHandlerV2.accept(record, !record.getWatched(), "listPane");
             }
             // ideally, the Model has been updated at this point
             // since the MBeans in this model points to the same MBeans in the Model

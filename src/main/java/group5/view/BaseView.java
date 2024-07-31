@@ -5,7 +5,6 @@ import group5.model.beans.MBeans;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Collection;
 import java.util.stream.Stream;
 
 public class BaseView extends JFrame implements IView {
@@ -92,20 +91,22 @@ public class BaseView extends JFrame implements IView {
     }
 
     @Override
-    public void setDetailsPaneEntry(MBeans record) {
-        System.out.println("[BaseView] calling setDetailsPaneEntry, passing MBeans to detailsPane");
-        detailsPane.setMedia(record);
+    public void setDetailsPaneEntry(MBeans record, boolean refreshUserFieldsOnly) {
+        if (refreshUserFieldsOnly) {
+            if (detailsPane.getCurrentMedia() == record) {
+                detailsPane.refreshUserFields(); // refresh only the user fields if the record is the same
+            } else {
+                detailsPane.setMedia(record); // refresh the entire record if it doesn't match
+            }
+        } else {
+            detailsPane.setMedia(record);
+        }
     }
 
-
-
-//    @Override
-//    public void setSourceTableRecords(Stream<MBeans> mbeans) {
-//        Collection<MBeans> records = mbeans.toList();
-//        System.out.println("[BaseView] setMainTableRecords");
-//        listPane.setSourceTableRecords(records.stream());
-//    }
-
+    @Override
+    public void clearListSelection() {
+        listPane.getCurrentTable().clearSelection();
+    }
 
     /**
      * Set the source table records

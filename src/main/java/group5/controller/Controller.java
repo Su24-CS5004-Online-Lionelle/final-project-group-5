@@ -119,7 +119,7 @@ public class Controller implements IController, IFeature {
     @Override
     public void showRecordDetails(MBeans record) {
         System.out.println("[Controller] showRecordDetails called");
-        view.setDetailsPaneEntry(record);
+        view.setDetailsPaneEntry(record, false);
     }
 
 
@@ -176,14 +176,22 @@ public class Controller implements IController, IFeature {
      */
     public void removeFromWatchList(MBeans record, int userListIndex) {
         System.out.println("[Controller] removeFromWatchList called to remove " + record.getTitle() + " from user list index " + userListIndex);
-
+        view.clearListSelection();
         model.removeFromWatchList(record, userListIndex);
-        view.setUserTableRecords(model.getRecords(userListIndex, getFilterOptions()), userListIndex);
-        view.setSourceTableRecordsV2(model.getRecords(getFilterOptions()), getWatchlistNames(), getRecordUserListMatrixV2(model.getRecords(getFilterOptions())));
+
         // Update the filter pane if the current tab is the affected user list
-        if (view.getCurrentTab() -1 == userListIndex) {
-            view.getFilterPane().setMovies(model.getRecords(userListIndex, getFilterOptions()));
+        if (view.getCurrentTab() > 0) {
+            if (model.getRecords(userListIndex).count() == 0) {
+                // Clear filters in the filter pane and model if the filtered list is empty
+                model.clearFilter();
+                view.getFilterPane().resetFilterOptions();
+                view.getFilterPane().clearFilterOptions();
+            }
+            view.getFilterPane().setMovies(model.getRecords(userListIndex));
         }
+
+        view.setSourceTableRecordsV2(model.getRecords(), getWatchlistNames(), getRecordUserListMatrixV2(model.getRecords()));
+        view.setUserTableRecords(model.getRecords(userListIndex), userListIndex);
     }
 
     public void addToWatchlist(MBeans record, int userListIndex) {
@@ -191,7 +199,7 @@ public class Controller implements IController, IFeature {
         model.addToWatchList(record, userListIndex);
         view.setSourceTableRecordsV2(model.getRecords(), getWatchlistNames(), getRecordUserListMatrixV2(model.getRecords()));
         view.setUserTableRecords(model.getRecords(userListIndex), userListIndex);
-        // Since adding to a list is done from the source tab only, there is no need to update the filter pane
+        // Since adding to a list is done from the source tab only, there's no need to update the filter pane
     }
 
 
@@ -229,7 +237,33 @@ public class Controller implements IController, IFeature {
         }
         // Update the details pane if the record is currently displayed
         if (view.getDetailsPane().getCurrentMedia() == record) {
-            view.setDetailsPaneEntry(record);
+            view.setDetailsPaneEntry(record, true);
+        }
+    }
+
+    public void changeWatchedStatusV2(MBeans record, boolean watched, String caller) {
+        model.updateWatched(record, watched);
+        if (caller.equalsIgnoreCase("detailsPane")) // If caller is detailsPane, update the listPane
+        {
+            System.out.println("[Controller] Updating listPane from detailsPane");
+            // Update the table if the record is in the current table
+            if (getRecordsForCurrentView().anyMatch(r -> r == record)) {
+                if (view.getCurrentTab() == 0) {
+                    view.setSourceTableRecordsV2(getRecordsForCurrentView(),
+                            getWatchlistNames(),
+                            getRecordUserListMatrixV2(getRecordsForCurrentView()));
+                } else {
+                    view.setUserTableRecords(getRecordsForCurrentView(), view.getCurrentTab() - 1);
+                }
+            }
+        }
+        else if (caller.equalsIgnoreCase("listPane")) // If the caller is listPane, update the detailsPane
+        {
+            System.out.println("[Controller] Updating detailsPane from listPane");
+            // Update the details pane if the record is currently displayed
+            if (view.getDetailsPane().getCurrentMedia() == record) {
+                view.setDetailsPaneEntry(record, true);
+            }
         }
     }
 

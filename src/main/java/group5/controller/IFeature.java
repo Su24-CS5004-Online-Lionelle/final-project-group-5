@@ -67,6 +67,7 @@ public interface IFeature {
 *
      */
     public void changeWatchedStatus(MBeans record, boolean watched);
+    public void changeWatchedStatusV2(MBeans record, boolean watched, String caller);
 
     /**
      * Applies filters to the list of MBeans.

@@ -317,6 +317,14 @@ public class DetailsPane extends JPanel {
         return this.currentMedia;
     }
 
+
+    public void refreshUserFields() {
+        if (currentMedia != null) {
+            this.userRating.setText(Double.toString(currentMedia.getMyRating()));
+            this.watchedBox.setSelected(currentMedia.getWatched());
+        }
+    }
+
     /**
      * Set the media details to display.
      *
@@ -386,11 +394,12 @@ public class DetailsPane extends JPanel {
     public void bindFeatures(IFeature features) {
         this.watchedBox.addActionListener(e -> {
             if (this.currentMedia != null) {
-                features.changeWatchedStatus(this.currentMedia, this.watchedBox.isSelected());
+                // features.changeWatchedStatus(this.currentMedia, this.watchedBox.isSelected());
+                features.changeWatchedStatusV2(this.currentMedia, this.watchedBox.isSelected(), "detailsPane");
             }
         });
 
-        // 1. Acion Listener - do something when `enter` pressed
+        // 1. Action Listener - do something when `enter` pressed
         this.userRating.addActionListener(e -> {
             try {
                 double rating = Double.parseDouble(this.userRating.getText());
