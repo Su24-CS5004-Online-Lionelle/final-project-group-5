@@ -1,6 +1,7 @@
 package group5.controller;
 
 import group5.model.beans.MBeans;
+import group5.model.formatters.Formats;
 
 public interface IFeature {
 

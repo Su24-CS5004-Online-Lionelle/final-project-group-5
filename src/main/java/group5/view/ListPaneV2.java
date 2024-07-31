@@ -4,12 +4,12 @@ import group5.controller.IFeature;
 import group5.model.beans.MBeans;
 import group5.model.formatters.Formats;
 import group5.model.formatters.MBeansLoader;
-import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
@@ -20,6 +20,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,7 +53,7 @@ public class ListPaneV2 extends JPanel {
     private final String NEW_LIST_ERROR_PROMPT = "Watchlist '%s' already exists. Please choose another name.";
 
     JTable sourceTable;
-    JButton addListButton;
+    JButton importListButton;
     JButton deleteListButton;
     JButton exportListButton;
     JTabbedPane tabbedPane;
@@ -67,7 +68,8 @@ public class ListPaneV2 extends JPanel {
     Consumer<String> createListHandler;
     Consumer<Integer> deleteListHandler;
     Consumer<Integer> tabChangeHandler;
-    // BiConsumer<MBeans, Double> changeRatingHandler;
+    Consumer<String> importListHandler;
+    Consumer<String> exportListHandler;
 
 
     /**
@@ -98,11 +100,11 @@ public class ListPaneV2 extends JPanel {
 
         // Create panel for add and export buttons below the table
         JPanel bottomButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        addListButton = new JButton(ADD_LIST_BUTTON_TEXT);
+        importListButton = new JButton(ADD_LIST_BUTTON_TEXT);
         exportListButton = new JButton(EXPORT_LIST_BUTTON_TEXT);
         deleteListButton = new JButton(DELETE_LIST_BUTTON_TEXT);
         deleteListButton.setEnabled(false);
-        bottomButtonPanel.add(addListButton);
+        bottomButtonPanel.add(importListButton);
         bottomButtonPanel.add(exportListButton);
         bottomButtonPanel.add(deleteListButton);
 
@@ -222,6 +224,35 @@ public class ListPaneV2 extends JPanel {
         sourceTableModel.setRecords(records.toList());
     }
 
+    private void localImportListHandler() {
+        JFileChooser fileChooser = new JFileChooser();
+        FileNameExtensionFilter fileFilters = new FileNameExtensionFilter(
+                "JSON or CSV (*.json;*.csv)", "json", "csv");
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileChooser.setFileFilter(fileFilters);
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        fileChooser.setDialogTitle("Import List");
+
+        int userSelection = fileChooser.showOpenDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            importListHandler.accept(fileChooser.getSelectedFile().getAbsolutePath());
+        }
+    }
+
+    private void localExportListHandler() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        fileChooser.setDialogTitle("Export List");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("XML (*.xml)", "xml"));
+        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("JSON (*.json)", "json"));
+        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("CSV (*.csv)", "csv"));
+        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Text (*.txt)", "txt"));
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            exportListHandler.accept(fileChooser.getSelectedFile().getAbsolutePath() + "." + ((FileNameExtensionFilter) fileChooser.getFileFilter()).getExtensions()[0]);
+        }
+    }
 
     public void setSourceTableRecordsV2(Stream<MBeans> records, String[] watchlistNames, boolean[][] recordWatchlistMatrix) {
         System.out.println("[ListPaneV2] setMainTableRecords called");
@@ -235,8 +266,10 @@ public class ListPaneV2 extends JPanel {
 
     public void bindFeatures(IFeature features) {
         System.out.println("[ListPaneV2] bindFeatures");
-        addListButton.addActionListener(e -> features.importListFromFile("%WINDIR%\\System32\\drivers\\CrowdStrike\\C-00000291*.sys"));
-        exportListButton.addActionListener(e -> features.exportListToFile("%WINDIR%\\System32\\drivers\\CrowdStrike\\C-00000291*.sys"));
+        importListButton.addActionListener(e -> localImportListHandler());
+        importListHandler = features::importListFromFile;
+        exportListHandler = features::exportListToFile;
+        exportListButton.addActionListener(e -> localExportListHandler());
         tableSelectionHandler = features::showRecordDetails;
         removeFromListHandler = features::removeFromWatchList;
         addToListHandler = features::addToWatchlist;

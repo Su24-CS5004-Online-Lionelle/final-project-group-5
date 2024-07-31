@@ -149,8 +149,10 @@ public class TestController {
             return new int[0];
         }
 
+
+
         @Override
-        public void setUserListIndicesForRecord(MBeans record, int[] userListIndices) {
+        public void clearFilter() {
 
         }
     }

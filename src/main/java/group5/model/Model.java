@@ -23,7 +23,7 @@ import group5.model.formatters.Formats;
 import group5.model.formatters.MBeansFormatter;
 import group5.model.formatters.MBeansLoader;
 import group5.model.net.apiFunctionality.MovieAPIHandler;
-import group5.view.ListFonts;
+
 
 public class Model implements IModel {
 
@@ -69,7 +69,7 @@ public class Model implements IModel {
             System.out.println("Model: Source data not found, creating new source list from back up resources.");
             try {
                 Path sourcePath = new File(DEFAULT_DATA).toPath();
-                InputStream backupData = (ListFonts.class.getClassLoader().getResourceAsStream("source_bak.json"));
+                InputStream backupData = (getClass().getClassLoader().getResourceAsStream("source_bak.json"));
                 Files.copy(backupData, sourcePath, StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
                 System.out.println("Error loading backup data");
@@ -120,7 +120,7 @@ public class Model implements IModel {
         if (this.filter == null) {
             return this.sourceList.stream();
         }
-        return filterHandler.filter(this.filter, this.getRecords());
+        return filterHandler.filter(this.filter, this.sourceList.stream());
     }
 
     @Override
@@ -128,7 +128,7 @@ public class Model implements IModel {
         if (this.filter == null) {
             return this.watchLists.get(userListId).getMovieList();
         }
-        return filterHandler.filter(this.filter, this.getRecords(userListId));
+        return filterHandler.filter(this.filter, this.watchLists.get(userListId).getMovieList());
     }
 
     @Override
