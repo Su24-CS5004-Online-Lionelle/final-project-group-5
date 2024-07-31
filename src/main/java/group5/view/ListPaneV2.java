@@ -403,10 +403,10 @@ public class ListPaneV2 extends JPanel {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 if (!lsm.isSelectionEmpty()) {
                     // Find out which indexes are selected.
-                    int temp = lsm.getSelectedIndices()[0];
-                    // tableSelectionHandler.accept(getActiveTableModel().getRecordAt(temp));
-
-                    int modelIndex = getActiveTable().convertRowIndexToModel(temp); // Convert view index to model index
+                    int tableIndex = lsm.getSelectedIndices()[0];
+                    // Convert the table index to the model index, since the table is sorted
+                    // Model order is unaffected by sorting in table-level sorting
+                    int modelIndex = getActiveTable().convertRowIndexToModel(tableIndex);
                     tableSelectionHandler.accept(getActiveTableModel().getRecordAt(modelIndex));
                 }
             }
