@@ -11,10 +11,7 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
+import javax.swing.table.*;
 import java.awt.*;
 
 import java.awt.event.ActionEvent;
@@ -56,7 +53,6 @@ public class ListPaneV2 extends JPanel {
 
     JTable sourceTable;
     JButton importListButton;
-    JButton importListButton;
     JButton deleteListButton;
     JButton exportListButton;
     JTabbedPane tabbedPane;
@@ -71,8 +67,6 @@ public class ListPaneV2 extends JPanel {
     Consumer<String> createListHandler;
     Consumer<Integer> deleteListHandler;
     Consumer<Integer> tabChangeHandler;
-    Consumer<String> importListHandler;
-    Consumer<String> exportListHandler;
     Consumer<String> importListHandler;
     Consumer<String> exportListHandler;
 
