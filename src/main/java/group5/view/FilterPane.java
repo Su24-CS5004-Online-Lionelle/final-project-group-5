@@ -93,6 +93,8 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
         gbc.insets = new Insets(5, 4, 5, 4);
         updateGBC(null, null, null, null, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL);
 
+        // add border padding to button panel
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0,0,5,0));
         // add panels
         add(filterPanel, BorderLayout.NORTH);
         add(buttonPanel, BorderLayout.SOUTH);
@@ -101,7 +103,6 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
         addFilter(FilterLabels.TITLE.getFilterLabel(), titleFilter);
         addFilter(FilterLabels.GENRE.getFilterLabel(), genreFilter);
         addFilter(FilterLabels.MPA_RATING.getFilterLabel(), mpaRatingFilter);
-
         // add range filters
         addRangeFilter(FilterLabels.RELEASED.getFilterLabel(), releasedFrom, releasedTo, releasedRange[0],
                 releasedRange[1]);
@@ -109,7 +110,6 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
                 imdbRatingRange[1]);
         addRangeFilter(FilterLabels.BOX_OFFICE_EARNINGS.getFilterLabel(), boxOfficeEarningsFrom, boxOfficeEarningsTo,
                 boxOfficeRange[0], boxOfficeRange[1]);
-
         // add remaining filters
         addFilter(FilterLabels.DIRECTOR.getFilterLabel(), directorFilter);
         addFilter(FilterLabels.ACTOR.getFilterLabel(), actorFilter);
@@ -127,8 +127,6 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
         writerFilter.addActionListener(this);
         applyFilterButton.addActionListener(this);
         clearFilterButton.addActionListener(this);
-
-
     }
 
     /* Getters -------------------------------------------------------------------------------------------------------*/
@@ -210,7 +208,8 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
      */
     public String getFilteredBoxOfficeEarningsMin() {
         try {
-            return formatFromMillions(boxOfficeEarningsFrom.getText());
+            return boxOfficeEarningsFrom.getText().equalsIgnoreCase("N/A") ?
+                    boxOfficeEarningsFrom.getText() : formatFromMillions(boxOfficeEarningsFrom.getText());
         } catch (NumberFormatException e) {
             return "";
         }
@@ -223,7 +222,8 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
      */
     public String getFilteredBoxOfficeEarningsMax() {
         try {
-            return formatFromMillions(boxOfficeEarningsTo.getText());
+            return boxOfficeEarningsTo.getText().equalsIgnoreCase("N/A") ?
+                    boxOfficeEarningsTo.getText() : formatFromMillions(boxOfficeEarningsTo.getText());
         } catch (NumberFormatException e) {
             return "";
         }
@@ -290,9 +290,7 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
             // reset filter ranges and clear filter options
             setRangeFilterRanges();
             resetComboBoxOptions();
-            for (JTextField rangeFilter : rangeFilters) {
-                resetPlaceholder(rangeFilter);
-            }
+            refreshPlaceholders();
         } else {
             clearFilterOptions();
         }
@@ -400,8 +398,6 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
 
         // increment filter row
         filterRow++;
-
-
     }
 
     /**
@@ -531,7 +527,16 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
         String maxValueString = maxValue.isPresent() ? Integer.toString(maxValue.getAsInt()) : "No Max";
         String minValueString = minValue.isPresent() ? Integer.toString(minValue.getAsInt()) : "No Min";
 
-        return new String[] {minValueString, maxValueString};
+       String[] range = {minValueString, maxValueString};
+
+       // replace -1 with N/A if box office earning data is missing
+       for (int i = 0; i < range.length; i++) {
+           if (Integer.parseInt(range[i]) < 0) {
+               range[i] = "N/A";
+           }
+       }
+
+       return range;
     }
 
     /**
@@ -541,6 +546,11 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
      * @return a String containing the dollar value of the input param formatted as US currency in millions of dollars
      */
     private String formatAsCurrency(String value) {
+
+        if (value.equalsIgnoreCase("N/A")) {
+            return value;
+        }
+
         // set currency formatter to US locale
         NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US);
 
@@ -678,6 +688,20 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
         setPlaceholder(boxOfficeEarningsTo, boxOfficeRange[1]);
     }
 
+
+    public void refreshPlaceholders() {
+      releasedFrom.setText(releasedRange[0]);
+      releasedTo.setText(releasedRange[1]);
+      imdbRatingFrom.setText(imdbRatingRange[0]);
+      imdbRatingTo.setText(imdbRatingRange[1]);
+
+
+
+
+      boxOfficeEarningsFrom.setText(boxOfficeRange[0]);
+      boxOfficeEarningsTo.setText(boxOfficeRange[1]);
+    }
+
     /**
      * Resets the placeholder text in a JTextField to the min and max of the initial range.
      *
@@ -707,8 +731,10 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
                 }
                 break;
             case BOX_OFFICE_EARNINGS_FROM:
-                if (boxOfficeEarningsFrom.getText().isEmpty()) {
+                if (boxOfficeEarningsFrom.getText().isEmpty() || boxOfficeEarningsFrom.getText().startsWith("-")) {
                     boxOfficeEarningsFrom.setText(boxOfficeRange[0]);
+                } else if (boxOfficeEarningsFrom.getText().equalsIgnoreCase("N/A")){
+                    boxOfficeEarningsFrom.setText("N/A");
                 } else {
                     String processedBoxOfficeEarningsMin = boxOfficeEarningsFrom.getText()
                             .replaceAll("[^0-9.]", "");
@@ -722,8 +748,10 @@ public class FilterPane extends JPanel implements ActionListener, FocusListener 
                 }
                 break;
             case BOX_OFFICE_EARNINGS_TO:
-                if (boxOfficeEarningsTo.getText().isEmpty()) {
+                if (boxOfficeEarningsTo.getText().isEmpty() || boxOfficeEarningsTo.getText().startsWith("-")) {
                     boxOfficeEarningsTo.setText(boxOfficeRange[1]);
+                } else if (boxOfficeEarningsTo.getText().equalsIgnoreCase("N/A")){
+                    boxOfficeEarningsTo.setText("N/A");
                 } else {
                     String processedBoxOfficeEarningsMax = boxOfficeEarningsTo.getText()
                             .replaceAll("[^0-9.]", "");
