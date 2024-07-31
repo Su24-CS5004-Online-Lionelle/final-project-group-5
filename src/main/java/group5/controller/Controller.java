@@ -176,8 +176,11 @@ public class Controller implements IController, IFeature {
      */
     public void removeFromWatchList(MBeans record, int userListIndex) {
         System.out.println("[Controller] removeFromWatchList called to remove " + record.getTitle() + " from user list index " + userListIndex);
+
         model.removeFromWatchList(record, userListIndex);
         view.setUserTableRecords(model.getRecords(userListIndex), userListIndex);
+
+
         view.setSourceTableRecordsV2(model.getRecords(), getWatchlistNames(), getRecordUserListMatrixV2(model.getRecords()));
         // Update the filter pane if the current tab is the affected user list
         if (view.getCurrentTab() - 1 == userListIndex) {
