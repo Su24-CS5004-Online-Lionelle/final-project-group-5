@@ -13,7 +13,7 @@ public interface IModel {
     /**
      * String file path to default database location.
      */
-    public static final String DEFAULT_DATA = "./data/samples/source.json";  // Path to default movie DB here
+    public static final String DEFAULT_DATA = "./data/source/source.json";  // Path to default movie DB here
 
     /**
      * Load the source data from the default location.
@@ -134,15 +134,7 @@ public interface IModel {
     int[] getUserListIndicesForRecord(MBeans record);
 
     /**
-     * Add record to multiple watchlist based on indices.
-     *
-     * @param record The record to add to the watchlist.
-     * @param userListIndices The indices of the watchlist to add the record to.
+     * Clear the current filter
      */
-    void setUserListIndicesForRecord(MBeans record, int[] userListIndices);
-
-    //Stream<MBeans> getMovieList(FilterClass filter, UserListIdentifier userListId);
-
-
-
+    void clearFilter();
 }

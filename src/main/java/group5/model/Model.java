@@ -9,6 +9,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.StandardCopyOption;
+
 import group5.model.Filter.FilterHandler;
 import group5.model.Filter.IFilterHandler;
 import group5.model.beans.MBeans;
@@ -16,6 +23,7 @@ import group5.model.formatters.Formats;
 import group5.model.formatters.MBeansFormatter;
 import group5.model.formatters.MBeansLoader;
 import group5.model.net.apiFunctionality.MovieAPIHandler;
+import group5.view.ListFonts;
 
 public class Model implements IModel {
 
@@ -36,6 +44,11 @@ public class Model implements IModel {
     private IFilterHandler filterHandler;
 
     /**
+     * Holds last used filter parameters.
+     */
+    private List<List<String>> filter;
+
+    /**
      * Model class constructor.
      */
     public Model() {
@@ -52,7 +65,18 @@ public class Model implements IModel {
     @Override
     public void loadSourceData() {
         System.out.println("Load source database from" + DEFAULT_DATA);
+        if (!Files.exists(Paths.get(DEFAULT_DATA))) {
+            System.out.println("Model: Source data not found, creating new source list from back up resources.");
+            try {
+                Path sourcePath = new File(DEFAULT_DATA).toPath();
+                InputStream backupData = (ListFonts.class.getClassLoader().getResourceAsStream("source_bak.json"));
+                Files.copy(backupData, sourcePath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (Exception e) {
+                System.out.println("Error loading backup data");
+            }
+        }
         this.sourceList = MBeansLoader.loadMediasFromFile(DEFAULT_DATA, Formats.JSON);
+
     }
 
     /**
@@ -93,23 +117,31 @@ public class Model implements IModel {
 
     @Override
     public Stream<MBeans> getRecords() {
-        return this.sourceList.stream();
+        if (this.filter == null) {
+            return this.sourceList.stream();
+        }
+        return filterHandler.filter(this.filter, this.getRecords());
     }
 
     @Override
     public Stream<MBeans> getRecords(int userListId) {
-        return this.watchLists.get(userListId).getMovieList();
+        if (this.filter == null) {
+            return this.watchLists.get(userListId).getMovieList();
+        }
+        return filterHandler.filter(this.filter, this.getRecords(userListId));
     }
 
     @Override
     public Stream<MBeans> getRecords(List<List<String>> filters) {
         // TODO the method to implement new movies is made but not integrated
-        return filterHandler.filter(filters, this.getRecords());
+        this.setFilter(filters);
+        return getRecords();
     }
 
     @Override
     public Stream<MBeans> getRecords(int userListId, List<List<String>> filters) {
-        return filterHandler.filter(filters, this.getRecords(userListId));
+        this.setFilter(filters);
+        return getRecords(userListId);
     }
 
     /**
@@ -236,9 +268,17 @@ public class Model implements IModel {
     }
 
     @Override
-    public void setUserListIndicesForRecord(MBeans record, int[] userListIndices) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setUserListIndicesForRecird'");
+    public void clearFilter() {
+        this.filter = null;
+    }
+
+    /**
+     * Set and store the current filter to be used later.
+     *
+     * @param filter filter parameters to store.
+     */
+    private void setFilter(List<List<String>> filter) {
+        this.filter = filter;
     }
 
     /**
@@ -260,27 +300,6 @@ public class Model implements IModel {
      */
     public static void main(String[] args) {
         Model model = new Model();
-        model.loadWatchList("data/samples/watchlist.json");
-        model.loadWatchList("data/samples/source.json");
-        Set<MBeans> externalList = MBeansLoader.loadMediasFromFile("data/samples/watchlist.json", Formats.JSON);
-        System.out.println("Source");
-        for (MBeans bean : model.getRecords().collect(Collectors.toList())) {
-            int hashCode = System.identityHashCode(bean); // identityHash to show matching references
-            System.out.println(bean.getTitle() + "  Object hash code: " + hashCode + "  Local Hash: " + bean.hashCode());
-        }
-        System.out.println("WatchList");
-        for (MBeans bean : model.getRecords(0).collect(Collectors.toList())) {
-            int hashCode = System.identityHashCode(bean); // identityHash to show matching references
-            System.out.println(bean.getTitle() + "  Object hash code: " + hashCode + "  Local Hash: " + bean.hashCode());
-        }
-        System.out.println("Not reference WatchList");
-        for (MBeans bean : externalList) {
-            int hashCode = System.identityHashCode(bean); // identityHash to show matching references
-            System.out.println(bean.getTitle() + "  Object hash code: " + hashCode + "  Local Hash: " + bean.hashCode());
-        }
-        MBeans titanic = MBeansLoader.loadMediasFromFile("./data/test/titanic.json", Formats.JSON).iterator().next();
-        model.updateUserRating(titanic, 10);
-        model.updateWatched(titanic, true);
     }
 
 }
