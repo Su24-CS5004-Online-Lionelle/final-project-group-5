@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import group5.view.ErrorMessage;
 import org.apache.commons.lang3.tuple.Triple;
 
 import group5.model.Filter.Operations;

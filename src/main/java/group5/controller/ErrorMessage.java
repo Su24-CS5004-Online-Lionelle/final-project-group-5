@@ -1,4 +1,4 @@
-package group5.view;
+package group5.controller;
 
 public enum ErrorMessage {
 
