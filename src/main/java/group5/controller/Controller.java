@@ -141,9 +141,9 @@ public class Controller implements IController, IFeature {
     public void importListFromFile(String filepath) {
         System.out.println("[Controller] User requested to import watchlist from " + filepath);
         int newWatchlistIdx = model.loadWatchList(filepath);
-        Path path = Paths.get(filepath);
-        String fileName = path.getFileName().toString();
         if (newWatchlistIdx < 0) {
+            Path path = Paths.get(filepath);
+            String fileName = path.getFileName().toString();
             switch (newWatchlistIdx) {
                 case -1:
                     view.showAlertDialog(String.valueOf(ErrorMessage.ERROR), ErrorMessage.NAME_CLASH.getErrorMessage(fileName));
